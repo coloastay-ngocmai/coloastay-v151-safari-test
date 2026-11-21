@@ -1,0 +1,13 @@
+(function(g){'use strict';
+const AK='coloastay_adjustments_v58_demo', FORMAT='coloastay-v59-with-adjustments';
+function snapshot(store,dbKey){const core=CoLoaCombined49.read(store,dbKey), adjustments=CLSAdjust58.read(store);return {...core,adjustments};}
+function report(s){CLSAdjust58.valid(s);const result={};for(const x of s.items){const k=x.period;if(!result[k])result[k]={pending:0,approved:0,rejected:0,count:0};result[k][x.status]+=x.amount;result[k].count++;}return result;}
+const digest=async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
+async function pack(store,dbKey){const s=snapshot(store,dbKey),payload=JSON.stringify(s);return {format:FORMAT,version:59,sha256:await digest(payload),payload};}
+async function unpack(pkg){if(!pkg||pkg.format!==FORMAT||pkg.version!==59||typeof pkg.payload!=='string'||pkg.sha256!==await digest(pkg.payload))throw Error('Bản sao V59 không hợp lệ hoặc bị sửa');const s=JSON.parse(pkg.payload);CLSAdjust58.valid(s.adjustments);CoLoaCombined49.check(s.db,s.approval,s.source);return s;}
+function restore(store,dbKey,s){if(store.getItem('cls_v101_committed')!==null)throw Error('Đã có bản lưu chung: cấm khôi phục kiểu cũ trực tiếp; dùng khôi phục có kiểm tra V126');CLSAdjust58.valid(s.adjustments);CoLoaCombined49.check(s.db,s.approval,s.source);const existing=CLSAdjust58.read(store);if(s.adjustments.revision<existing.revision)throw Error('Bản sao có sổ điều chỉnh cũ hơn');for(const x of existing.items.filter(x=>x.status==='approved')){const y=s.adjustments.items.find(y=>y.id===x.id);if(!y||y.status!=='approved'||y.amount!==x.amount||y.period!==x.period)throw Error('Bản sao làm mất điều chỉnh đã duyệt: '+x.id)}
+const keys=[dbKey,CoLoaCombined49.approvalKey,CoLoaCombined49.sourceKey,AK],old=keys.map(k=>store.getItem(k));const newValues=[JSON.stringify(s.db),JSON.stringify(s.approval),s.source,JSON.stringify(s.adjustments)];
+// Snapshot rollback is best-effort in browser storage; not a database transaction.
+try{for(let i=0;i<keys.length;i++){if(newValues[i]===null)store.removeItem(keys[i]);else store.setItem(keys[i],newValues[i]);if(store.getItem(keys[i])!==newValues[i])throw Error('Không xác nhận được dữ liệu đã ghi')}}catch(e){let failed=false;for(let i=0;i<keys.length;i++)try{if(old[i]===null)store.removeItem(keys[i]);else store.setItem(keys[i],old[i])}catch(_){failed=true}throw Error('Khôi phục thất bại: '+e.message+(failed?' — DỪNG SỬ DỤNG: không thể hoàn nguyên':''))}return true;}
+g.CLS59={AK,FORMAT,snapshot,report,pack,unpack,restore};
+})(typeof window!=='undefined'?window:globalThis);

@@ -1,0 +1,35 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>V151 – Bắt đầu thử riêng</title>
+<style>body{font:17px system-ui;background:#f2f6f3;color:#1b3d32;margin:16px auto;max-width:620px}main{background:white;padding:20px;border-radius:18px}button,a.action{display:block;box-sizing:border-box;width:100%;background:#236b50;color:white;padding:18px;margin:15px 0;border:0;border-radius:12px;text-align:center;text-decoration:none;font-weight:700;font-size:18px}pre{white-space:pre-wrap;overflow-wrap:anywhere}small{color:#546b60}</style>
+<main><h2>V151 — Bản thử ứng dụng riêng</h2><p>Chỉ dùng dữ liệu giả. Không kết nối Supabase, không dùng kho V150.</p>
+<button id="seed">1. Nạp 4 đơn giả vào kho V151 trống</button>
+<a class="action" href="index.html">2. Mở ứng dụng V151 thử</a>
+<button id="verify">3. Kiểm tra 5 sổ và mã đơn sau tải lại</button>
+<pre id="result">Chưa kiểm tra.</pre><small>Nếu kho thử đã có dữ liệu, không nạp lại. Không xóa dữ liệu để thử lại.</small></main>
+<script src="v151-isolation.js"></script><script src="atomic-ledgers-v103.js"></script><script src="ledger-transaction-v115.js"></script><script src="ledger-staging-v116.js"></script><script src="ledger-audit-v117.js"></script><script src="mirror-restore-v125.js"></script><script src="workflow-v44.js"></script><script src="adjustments-v58.js"></script><script src="accounting-v60.js"></script><script src="independent-restore-v150.js"></script><script src="independent-export-v151.js"></script>
+<script>
+const result=document.getElementById('result');
+document.getElementById('seed').onclick=async()=>{
+ try{if(!CLSIndependentRestore150.empty(localStorage))throw Error('Kho V151 không trống. Giữ nguyên dữ liệu, không nhập đè.');
+ const pkg=await(await fetch('DU_LIEU_GIA_V151_DA_SUA_SO.json',{cache:'no-store'})).json();
+ const plan=CLSIndependentRestore150.prepare(pkg);
+ if(plan.summary.bookings!==4)throw Error('Tệp giả không đủ 4 đơn');
+ CLSIndependentRestore150.restoreEmpty(localStorage,pkg,true);
+ const a=CLSLedgerAudit117.inspect(localStorage);
+ if(!a.ready)throw Error('5 sổ chưa đồng bộ sau phục hồi');
+ result.textContent='Đã nạp dữ liệu giả: 4 đơn. Chị mở ứng dụng ở nút 2.';
+ }catch(e){result.textContent='DỪNG: '+e.message}
+};
+document.getElementById('verify').onclick=()=>{
+ try{const data=CLSLedger115.readCommitted(localStorage);if(!data)throw Error('Chưa có bản xác nhận');
+ const keys=CLSLedger115.KEYS;
+ if(keys.length!==5||keys.some(k=>localStorage.getItem(k)!==data[k]))throw Error('Một trong 5 sổ chưa khớp');
+ const main=JSON.parse(data[keys[0]]);
+ const max=Math.max(Number(main.bookingSequence)||0,...main.bookings.map(b=>Number(/^DP-(\d+)$/.exec(b.code||'')?.[1]||0)));
+ const next='DP-'+String(max+1).padStart(4,'0');
+ const receipts=main.receipts||[];
+ const pkg=CLSIndependentExport151.pack(localStorage);
+ CLSIndependentRestore150.prepare(pkg);
+ result.textContent='✓ 5/5 sổ khớp\n✓ Số đơn: '+main.bookings.length+'\n✓ Mã tiếp theo: '+next+'\n✓ Số dòng thu: '+receipts.length+'\n✓ Xuất và kiểm tra lại JSON đạt';
+ }catch(e){result.textContent='DỪNG: '+e.message}
+};
+</script></html>

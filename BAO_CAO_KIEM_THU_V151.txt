@@ -1,0 +1,11 @@
+V151 – BẢN ỨNG DỤNG THỬ ĐỘC LẬP (KHÔNG DÙNG DỮ LIỆU THẬT)
+- Đã ghép giao diện ứng dụng với các mô-đun xuất/phục hồi JSON V151.
+- Có trang bat-dau-v151.html để nạp 4 đơn giả vào kho thử trống và kiểm tra 5 sổ sau tải lại.
+- Có bộ cách ly localStorage với tiền tố __coloastay_v151_integrated_trial__, nhằm không dùng khóa lưu trữ của V150 ngay cả khi cùng tên miền github.io.
+- Bản này chỉ được triển khai trong repo thử riêng; KHÔNG cập nhật website V150, Netlify hay Supabase.
+- Kiểm thử Node: test-v151-restore.cjs và test-v151-integration.cjs đều exit 0.
+- Kiểm thử trình duyệt tự động Chromium: CHƯA THÀNH CÔNG vì môi trường chặn địa chỉ localhost (ERR_BLOCKED_BY_ADMINISTRATOR).
+- Chưa xác nhận thao tác tạo DP-0005, ghi thu, tải lại Safari trên iPhone; người dùng phải thực hiện thử trên bản V151 riêng và gửi ảnh.
+- Chưa thử sự cố mất điện thật, 2 iPhone, bảo mật server hoặc đồng bộ Supabase.
+CÁCH THỬ: tải các tệp trong ZIP lên kho GitHub Pages THỬ MỚI (không ghi đè repo V150); mở /bat-dau-v151.html, bấm nạp 4 đơn giả, mở ứng dụng, tạo DP-0005, ghi thu thử, xuất JSON V151, tải lại và đối chiếu.
+CẢNH BÁO: Các nút phục hồi/xóa dữ liệu cũ vẫn hiện trong ứng dụng thử; không dùng với dữ liệu thật.
