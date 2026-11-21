@@ -1,0 +1,27 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>V151 — Kiểm thử Safari riêng</title>
+<style>body{font:17px system-ui;margin:auto;max-width:650px;padding:18px;background:#f4f7f5;color:#14392d}button{padding:16px;border:0;border-radius:12px;background:#086a4e;color:white;font-weight:700;font-size:18px;width:100%;margin:12px 0}article{background:white;padding:18px;border-radius:16px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px system-ui}small{color:#576b62}</style>
+<article><h2>🧪 Cổ Loa Stay V151 — kiểm thử độc lập</h2><p><b>Chỉ dữ liệu giả.</b> Trang này không mở ứng dụng V150, không dùng localStorage, không kết nối Supabase và không ghi dữ liệu thật.</p><button id="run">Chạy kiểm tra V151</button><p id="status">Chưa chạy kiểm thử.</p><pre id="result"></pre><small>Chạy trên một website thử có tên miền riêng. Không tải ZIP này lên website V150 hoặc Netlify đang sử dụng.</small></article>
+<script src="atomic-ledgers-v103.js"></script><script src="ledger-transaction-v115.js"></script><script src="ledger-staging-v116.js"></script><script src="ledger-audit-v117.js"></script><script src="mirror-restore-v125.js"></script><script src="workflow-v44.js"></script><script src="adjustments-v58.js"></script><script src="accounting-v60.js"></script><script src="independent-restore-v150.js"></script><script src="independent-export-v151.js"></script>
+<script>
+const out=document.querySelector('#result'),status=document.querySelector('#status');
+function mem(initial={},fail=()=>false){const m=new Map(Object.entries(initial));return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>{if(fail(k))throw Error('Gián đoạn mô phỏng '+k);m.set(k,String(v))},removeItem:k=>m.delete(k),dump:()=>Object.fromEntries(m)}}
+async function run(){document.querySelector('#run').disabled=true;let pass=0,fail=0,lines=[];function test(label,fn){try{if(fn()!==true)throw Error('Không khớp');pass++;lines.push('✓ '+label)}catch(e){fail++;lines.push('✗ '+label+' — '+e.message)}}
+try{
+const pkg=await (await fetch('DU_LIEU_GIA_V151_DA_SUA_SO.json',{cache:'no-store'})).json();
+const R=CLSIndependentRestore150,G=CLSLedger115,A=CLSAtomic101,keys=G.KEYS;
+test('Tệp giả có 4 đơn',()=>R.prepare(pkg).summary.bookings===4);
+let first=mem();test('Phục hồi vào kho giả trống',()=>R.restoreEmpty(first,pkg,true).bookings===4);
+let reloaded=mem(first.dump());test('Đọc lại đủ 5 sổ sau tải lại giả lập',()=>keys.length===5&&keys.every(k=>G.readCommitted(reloaded)[k]===pkg.items[k]));
+test('Mã đơn tiếp theo DP-0005',()=>{const d=JSON.parse(G.readCommitted(reloaded)[keys[0]]);const max=Math.max(...d.bookings.map(b=>Number((/^DP-(\d+)$/.exec(b.code)||[])[1]||0)));return 'DP-'+String(max+1).padStart(4,'0')==='DP-0005'});
+test('Không nhập đè kho có dữ liệu',()=>{try{R.restoreEmpty(first,pkg,true);return false}catch(e){return true}});
+test('Xuất và kiểm tra lại 5 sổ',()=>R.prepare(CLSIndependentExport151.pack(reloaded)).summary.bookings===4);
+let interrupted=mem({},k=>k===A.HEAD);
+test('Gián đoạn ghi HEAD không tạo bản xác nhận',()=>{try{R.restoreEmpty(interrupted,pkg,true)}catch(e){}return interrupted.getItem(A.HEAD)===null&&G.readCommitted(interrupted)===null});
+let mirrorFailure=mem({},k=>k===keys[2]);test('Gián đoạn sổ đọc vẫn giữ bản xác nhận',()=>{try{R.restoreEmpty(mirrorFailure,pkg,true)}catch(e){}return G.readCommitted(mirrorFailure)!==null&&mirrorFailure.getItem(keys[2])!==pkg.items[keys[2]]});
+for(let i=1;i<=3;i++){const label=['','V48','V58','V60'][i],changed=JSON.parse(JSON.stringify(pkg)),snap=JSON.parse(changed.items[A.PREFIX+changed.committedSequence]);snap.data[keys[i]]=JSON.stringify({items:[],entries:[]});let hash=2166136261;const raw=JSON.stringify({sequence:snap.sequence,data:snap.data});for(let j=0;j<raw.length;j++){hash^=raw.charCodeAt(j);hash=Math.imul(hash,16777619)}snap.hash=(hash>>>0).toString(16);changed.items[A.PREFIX+changed.committedSequence]=JSON.stringify(snap);changed.items[keys[i]]=snap.data[keys[i]];
+test('Từ chối sổ sai '+label,()=>{try{R.prepare(changed);return false}catch(e){return e.message.includes(label)}})}
+}catch(e){fail++;lines.push('✗ Không chạy được: '+e.message)}
+status.textContent=pass+' đạt / '+(pass+fail)+' bài — '+(fail?'CÒN LỖI':'ĐẠT TRONG KHO GIẢ LẬP');out.textContent=lines.join('\n');document.querySelector('#run').disabled=false;
+}
+document.querySelector('#run').onclick=run;
+</script></html>

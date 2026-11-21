@@ -1,0 +1,1 @@
+V151 Safari TEST ONLY. Đưa toàn bộ ZIP này lên một SITE NETLIFY MỚI có hostname khác website thật. Không tải lên V150. Mở trang, bấm 'Chạy kiểm tra V151', chụp kết quả. Đây là kiểm thử mô phỏng trong RAM, không phải kiểm thử giao diện ứng dụng đầy đủ hoặc phục hồi localStorage Safari.

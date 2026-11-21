@@ -1,0 +1,11 @@
+(function(root){'use strict';
+const KEY='coloastay_adjustments_v58_demo';
+function valid(s){if(!s||s.version!==1||!Array.isArray(s.items)||!Number.isInteger(s.revision)||s.revision<0)throw Error('Sổ điều chỉnh không hợp lệ');const ids=new Set();for(const x of s.items){if(!x.id||ids.has(x.id)||!Number.isSafeInteger(x.amount)||x.amount===0||!['pending','approved','rejected'].includes(x.status)||!x.period||!x.reason)throw Error('Điều chỉnh không hợp lệ hoặc trùng mã');ids.add(x.id)}return s}
+function initial(){return {version:1,revision:0,items:[]}}
+function commit(s,role,action,arg,expected){valid(s);if(s.revision!==expected)throw Error('Phiên bản cũ, phải tải lại');let n=JSON.parse(JSON.stringify(s));if(action==='create'){if(role!=='mai'&&role!=='dao')throw Error('Không có quyền lập điều chỉnh');if(!arg||!/^\d{4}-\d{2}$/.test(arg.month)||!arg.house||!arg.reason||!Number.isSafeInteger(arg.amount)||arg.amount===0)throw Error('Thiếu dữ liệu điều chỉnh');if(n.items.some(x=>x.id===arg.id))throw Error('Mã điều chỉnh trùng');n.items.push({id:arg.id,period:arg.house+'-'+arg.month,amount:arg.amount,reason:arg.reason,status:'pending',createdBy:role,approvedBy:null});}
+else if(action==='approve'||action==='reject'){if(role!=='dao')throw Error('Chỉ quản trị Đào được duyệt');const x=n.items.find(x=>x.id===arg.id);if(!x||x.status!=='pending')throw Error('Không thể duyệt lại');if(x.createdBy===role)throw Error('Không tự duyệt khoản mình lập');x.status=action==='approve'?'approved':'rejected';x.approvedBy=role;}
+else throw Error('Thao tác không hợp lệ');n.revision++;return valid(n)}
+function read(store){let raw=store.getItem(KEY);if(raw===null)return initial();try{return valid(JSON.parse(raw))}catch(e){throw Error('Sổ điều chỉnh bị hỏng; tạm dừng: '+e.message)}}
+function write(store,role,action,arg){let before=read(store),after=commit(before,role,action,arg,before.revision);store.setItem(KEY,JSON.stringify(after));return after}
+root.CLSAdjust58={KEY,initial,valid,commit,read,write};
+})(typeof window!=='undefined'?window:globalThis);
