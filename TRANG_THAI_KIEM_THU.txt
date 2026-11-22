@@ -1,0 +1,6 @@
+V151 – BỘ CHỜ KIỂM THỬ SAFARI (22/11/2026)
+
+Đã xác minh: 29/29 script của index.html có trong bộ; kiểm thử giả lập 19/19 và 13/13 đạt.
+Chưa xác minh: thao tác tạo DP-0005, thu 300.000đ, xuất JSON, đóng/mở Safari và phục hồi trên thiết bị thật.
+Chưa triển khai GitHub. Không tải lên V150, Netlify thật hoặc Supabase.
+Chỉ được tải lên kho thử coloastay-v151-safari-test sau khi sao lưu dữ liệu thử hiện tại và có kế hoạch kiểm tra; tệp có thể ghi đè bản thử cũ.
