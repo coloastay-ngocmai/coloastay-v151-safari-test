@@ -1,0 +1,48 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>V151 – Kiểm tra phục hồi cách ly</title><style>body{font:19px system-ui;background:#f4f7f4;color:#173b30;margin:0;padding:20px}main{max-width:720px;margin:auto}h1{font-size:27px}section{background:white;padding:20px;border-radius:16px;margin:16px 0;border:1px solid #c9d9d0}button,input{font:inherit;max-width:100%}button{padding:16px;background:#126046;color:white;border:0;border-radius:12px;margin:12px 0}button:disabled{opacity:.4}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px}.warn{color:#8a3b20}</style></head><body><main><h1>V151 – Kiểm tra phục hồi cách ly</h1><section><b>Chỉ dùng JSON dữ liệu giả.</b><p>Trang này không chạy ứng dụng V151, không kết nối Supabase và không ghi vào kho đặt phòng đang dùng. Nó chỉ kiểm tra và lưu một bản sao JSON trong một khóa riêng có tên <code>cls_v151_isolated_restore_lab_20261122</code>.</p><p class="warn">Không dùng tệp sao lưu dữ liệu thật. Không xóa dữ liệu Safari.</p></section><section><h2>1. Chọn tệp JSON giả</h2><input id="file" type="file" accept=".json,application/json"><p id="info">Chưa chọn tệp.</p><button id="restore" disabled>Phục hồi bản sao vào kho cách ly</button></section><section><h2>2. Đối chiếu kho cách ly</h2><button id="check">Kiểm tra lại sau khi mở trang</button><pre id="out">Chưa kiểm tra.</pre></section></main><script>
+"use strict";
+const KEY='cls_v151_isolated_restore_lab_20261122';
+let pending=null;
+const $=id=>document.getElementById(id);
+function inspect(raw){
+ const x=JSON.parse(raw);
+ if(x.format!=='coloastay-independent-readonly-1'||!x.items||typeof x.items!=='object')throw Error('Không đúng định dạng JSON độc lập.');
+ const n=Number(x.committedSequence);
+ if(!Number.isSafeInteger(n)||n<1)throw Error('Số phiên xác nhận không hợp lệ.');
+ const required=['cls_v101_committed','coloastay_homestay_v2_demo','cls_v101_snapshot_'+n];
+ for(const k of required)if(typeof x.items[k]!=='string')throw Error('Thiếu sổ '+k);
+ if(String(x.items.cls_v101_committed)!==String(n))throw Error('Số phiên không khớp.');
+ const snap=JSON.parse(x.items['cls_v101_snapshot_'+n]);
+ const data=JSON.parse(x.items.coloastay_homestay_v2_demo);
+ if(snap.sequence!==n||typeof snap.data!=='object')throw Error('Bản xác nhận không hợp lệ.');
+ if(!Array.isArray(data.bookings)||!Array.isArray(data.receipts))throw Error('Thiếu danh sách đơn hoặc khoản thu.');
+ const b=data.bookings.find(z=>z.code==='DP-0005');
+ const rec=b?data.receipts.filter(r=>r.booking===b.id):[];
+ const received=rec.reduce((sum,r)=>sum+(Number(r.amount)||0),0);
+ return {format:x.format,sequence:n,items:Object.keys(x.items).length,bookings:data.bookings.length,receipts:data.receipts.length,booking5:!!b,total5:b?Number(b.total):null,received5:received,due5:b?Number(b.total)-received:null,receiptCodes:rec.map(r=>r.ref||r.reference||r.code||r.receiptCode||'(không có trường mã)')};
+}
+$('file').addEventListener('change',async e=>{
+ pending=null;$('restore').disabled=true;
+ try{
+ const f=e.target.files[0];if(!f)return;
+ if(f.size>5*1024*1024)throw Error('Tệp quá lớn.');
+ const raw=await f.text();const result=inspect(raw);
+ pending=raw;$('restore').disabled=false;
+ $('info').textContent='Tệp hợp lệ để kiểm tra cách ly. '+result.bookings+' đơn, '+result.receipts+' khoản thu. Chưa ghi dữ liệu.';
+ }catch(err){$('info').textContent='DỪNG: '+err.message}
+});
+$('restore').onclick=()=>{
+ if(!pending)return;
+ try{
+ const current=localStorage.getItem(KEY);
+ if(current!==null&&current!==pending)throw Error('Kho cách ly đã có bản khác. Không ghi đè.');
+ localStorage.setItem(KEY,pending);
+ if(localStorage.getItem(KEY)!==pending)throw Error('Không xác minh được việc ghi.');
+ $('out').textContent='Đã ghi bản sao vào kho cách ly riêng. Bấm “Kiểm tra lại” hoặc tải lại trang để đối chiếu.\n'+JSON.stringify(inspect(pending),null,2);
+ }catch(err){$('out').textContent='DỪNG: '+err.message}
+};
+$('check').onclick=()=>{
+ try{const raw=localStorage.getItem(KEY);if(!raw)throw Error('Kho cách ly chưa có bản sao.');
+ $('out').textContent='Đã đọc lại kho cách ly:\n'+JSON.stringify(inspect(raw),null,2);
+ }catch(err){$('out').textContent='DỪNG: '+err.message}
+};
+</script></body></html>
